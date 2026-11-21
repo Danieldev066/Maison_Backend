@@ -1,113 +1,80 @@
-<div align="center">
-
-# MAISON Restaurant API
-
-**FastAPI backend for the MAISON restaurant web and Flutter applications**
+<div align="center">MAISON Restaurant API
+Backend ресторана MAISON на FastAPI для веб-сайта и мобильного приложения Flutter
 
 Python 3.12 · FastAPI · SQLAlchemy 2 · Alembic · JWT · PostgreSQL / SQLite · Pytest
+</div>О проекте
+MAISON Restaurant — MVP серверной части ресторанного сервиса с единым REST API для сайта, Flutter-приложения и панели администратора. Backend отвечает за пользователей, сведения о ресторане, меню, бронирование столиков и оформление заказов.
+Статус: MVP, этап тестирования и интеграции. По состоянию на 21 ноября 2026 года API запускался локально, 8 автоматических тестов прошли успешно. Проверки для полноценного продакшен-развёртывания ещё не завершены.
 
-</div>
+Возможности
+- Пользователи: регистрация, вход по JWT-токену, просмотр и изменение профиля.
+- Ресторан: публичная информация и изменение данных администратором.
+- Меню: категории, блюда, поиск, доступность и управление через административные методы.
+- Бронирования: проверка доступных столиков, создание, просмотр и отмена брони.
+- Заказы: самовывоз и заказ в зале, расчёт стоимости на сервере, история заказов, отмена и управление статусами сотрудниками.
+- Права доступа: пользователи видят собственные данные; административные методы защищены.
+- Документация: автоматическая Swagger UI и спецификация OpenAPI.
+Что пока не входит в MVP: онлайн-оплата, SMS/push-уведомления, восстановление пароля, учёт складских остатков и обновление кухни в реальном времени.
+Технологии
+Компонент	Технология
+API	Python 3.12, FastAPI
+Работа с данными	SQLAlchemy 2, Alembic
+База данных	SQLite для локальной разработки; PostgreSQL — целевая БД для сервера
+Валидация	Pydantic v2
+Авторизация	JWT Bearer Token
+Тестирование	Pytest, FastAPI TestClient
+Развёртывание	Ubuntu / AWS EC2, Nginx, Uvicorn (планируемый вариант)
 
----
 
-## Overview
-
-MAISON is a restaurant backend MVP that exposes a shared REST API for a website, a Flutter mobile app, and an administrator interface. The backend handles customers, restaurant information, menu items, table reservations, and food orders.
-
-> **Status:** MVP / integration testing. The API has been run locally, with **8 automated tests passing** as of November 21, 2026. Production hardening and deployment verification are still required.
-
-## Features
-
-- **Accounts:** customer registration, sign-in with bearer JWT, and profile management.
-- **Restaurant:** public restaurant information and administrative updates.
-- **Menu:** categories and dishes, search, availability, and admin management.
-- **Reservations:** table availability checks, booking, viewing, and cancellation.
-- **Orders:** pickup or dine-in orders, server-calculated totals, personal order history, cancellation, and staff status management.
-- **Access control:** customer-owned resources and admin-only endpoints.
-- **Documentation:** automatic Swagger UI and OpenAPI schema.
-
-**Not included in this MVP:** payment gateway, SMS/push notifications, password reset, inventory tracking, and real-time kitchen updates.
-
-## Tech stack
-
-| Layer | Technology |
-| --- | --- |
-| API | FastAPI, Python 3.12 |
-| Persistence | SQLAlchemy 2, Alembic |
-| Database | SQLite (local development), PostgreSQL (deployment target) |
-| Validation | Pydantic v2 |
-| Authentication | JWT bearer tokens |
-| Tests | Pytest, FastAPI TestClient |
-| Hosting | Ubuntu / AWS EC2, Nginx, Uvicorn (deployment option) |
-
-## Quick start (Windows / PyCharm)
-
-Run the commands from the directory containing `app/`, `requirements.txt`, and `alembic.ini` (currently `my_site/` in the local development workspace).
-
-```powershell
+Быстрый запуск на Windows (PyCharm)
+Выполняйте команды из каталога, в котором находятся app/, requirements.txt и alembic.ini (в текущем локальном проекте — my_site/).
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 python -c "import secrets; print(secrets.token_urlsafe(48))"
-```
-
-Copy the generated secret into `SECRET_KEY=` in `.env`. For local SQLite development, use:
-
-```dotenv
+Скопируйте сгенерированный секрет в значение SECRET_KEY= файла .env. Для локального запуска с SQLite используйте:
 DATABASE_URL=sqlite:///./maison.db
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
-```
-
-Then run:
-
-```powershell
+Запустите миграции, добавьте демонстрационные данные и поднимите API:
 python -m alembic upgrade head
 python -m scripts.seed
 python -m uvicorn app.main:app --reload
-```
+Если база данных уже создана и содержит данные, не удаляйте и не перезаписывайте её ради выполнения инструкции. Если .env уже настроен, не заменяйте его без необходимости.
 
-If the database is already initialized, do **not** overwrite or delete it just to follow this guide.
+Локальный адрес	Назначение
+http://127.0.0.1:8000/docs	Swagger UI — интерактивная документация
+http://127.0.0.1:8000/openapi.json	Спецификация OpenAPI
+http://127.0.0.1:8000/health	Проверка работоспособности
+http://127.0.0.1:8000/api/v1	Базовый путь REST API
 
-| Local URL | Description |
-| --- | --- |
-| `http://127.0.0.1:8000/docs` | Swagger UI |
-| `http://127.0.0.1:8000/openapi.json` | OpenAPI schema |
-| `http://127.0.0.1:8000/health` | Health check |
-| `http://127.0.0.1:8000/api/v1` | API base URL |
 
-## API endpoints
+Основные эндпоинты API
+Все маршруты ниже начинаются с /api/v1. Для защищённых операций нужен JWT-токен. Административные операции требуют роли администратора.
+Метод	Маршрут	Описание
+POST	/auth/register	Регистрация клиента
+POST	/auth/login	Вход и получение JWT
+GET, PATCH	/users/me	Просмотр и изменение профиля
+GET, PATCH	/restaurant	Информация о ресторане / редактирование администратором
+GET, POST	/menu/categories	Список и создание категорий
+GET, POST	/menu/items	Список и создание блюд
+GET, PATCH, DELETE	/menu/items/{item_id}	Просмотр, изменение и скрытие блюда
+GET, POST	/tables	Список столиков и добавление столика
+GET	/reservations/availability	Проверка свободных столиков
+GET, POST	/reservations	Просмотр своих броней и создание брони
+GET	/reservations/{reservation_id}	Просмотр бронирования
+POST	/reservations/{reservation_id}/cancel	Отмена бронирования
+GET	/admin/reservations	Список броней для администратора
+GET, POST	/orders	Просмотр своих заказов и создание заказа
+GET	/orders/{order_id}	Детали заказа
+POST	/orders/{order_id}/cancel	Отмена заказа, если его статус позволяет
+GET	/admin/orders	Список заказов для администратора
+PATCH	/admin/orders/{order_id}/status	Изменение статуса заказа
 
-All endpoints below are relative to `/api/v1`. Some require a valid JWT; admin operations require an administrator account.
 
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `POST` | `/auth/register` | Register a customer |
-| `POST` | `/auth/login` | Sign in and obtain JWT |
-| `GET`, `PATCH` | `/users/me` | View / edit profile |
-| `GET`, `PATCH` | `/restaurant` | Restaurant information / admin update |
-| `GET`, `POST` | `/menu/categories` | List / create categories |
-| `GET`, `POST` | `/menu/items` | List / create menu items |
-| `GET`, `PATCH`, `DELETE` | `/menu/items/{item_id}` | View / edit / archive a menu item |
-| `GET`, `POST` | `/tables` | List / add tables |
-| `GET` | `/reservations/availability` | Check available tables |
-| `GET`, `POST` | `/reservations` | View / create own reservations |
-| `GET` | `/reservations/{reservation_id}` | View reservation |
-| `POST` | `/reservations/{reservation_id}/cancel` | Cancel reservation |
-| `GET` | `/admin/reservations` | Admin reservation list |
-| `GET`, `POST` | `/orders` | View / create own orders |
-| `GET` | `/orders/{order_id}` | View order details |
-| `POST` | `/orders/{order_id}/cancel` | Cancel eligible order |
-| `GET` | `/admin/orders` | Admin order list |
-| `PATCH` | `/admin/orders/{order_id}/status` | Update order status |
-
-See [`API_CONTRACT.md`](API_CONTRACT.md) and `/docs` for request schemas, example responses, and the authoritative current OpenAPI definition.
-
-### Example: create a pickup order
-
-Authenticate with `POST /api/v1/auth/login`, then send:
-
-```http
+Полный контракт API находится в [`API_CONTRACT.md`](API_CONTRACT.md). Актуальные схемы запросов можно посмотреть на /docs и /openapi.json.
+Пример: оформление заказа на самовывоз
+Сначала войдите через POST /api/v1/auth/login, затем отправьте запрос с токеном:
 POST /api/v1/orders
 Authorization: Bearer <access_token>
 Content-Type: application/json
@@ -115,68 +82,49 @@ Content-Type: application/json
 {
   "order_type": "pickup",
   "items": [{"menu_item_id": 1, "quantity": 2}],
-  "notes": "No onions"
+  "notes": "Без лука"
 }
-```
+Замените menu_item_id на идентификатор существующего доступного блюда. Стоимость рассчитывается на сервере в целых кыргызских сомах (price_som, total_som), а не принимается из данных клиента.
 
-Use a real available `menu_item_id`. Prices are retrieved and calculated on the server in whole Kyrgyz som (`price_som`, `total_som`), not accepted from the client.
+Для order_type="dine_in" требуется подтверждённое бронирование, принадлежащее текущему пользователю.
+Подключение Frontend и Flutter
+Веб-сайт локально: http://127.0.0.1:8000/api/v1, если сайт и Backend работают на одном компьютере.
 
-For `dine_in`, a confirmed reservation owned by the current user is required.
+Android Emulator: http://10.0.2.2:8000/api/v1 — доступ из эмулятора к серверу на компьютере разработчика.
 
-## Connecting web frontend and Flutter
+После развёртывания: https://YOUR_DOMAIN/api/v1 — когда настроен HTTPS. Публичный IP можно применять для первоначальной проверки доступности по HTTP, но не передавайте пароли и токены через открытый HTTP в интернете.
 
-**Local web:** `http://127.0.0.1:8000/api/v1` (when the backend runs on the same machine).
-
-**Android emulator:** `http://10.0.2.2:8000/api/v1` (emulator to the host development machine).
-
-**Deployed clients:** use `https://YOUR_DOMAIN/api/v1` after HTTPS is configured. A public IPv4 address can be used for initial connectivity tests over HTTP, but **never send credentials or tokens over public HTTP**.
-
-Clients must attach `Authorization: Bearer <access_token>` on protected requests. Configure `CORS_ORIGINS` for exact website origins; native Flutter does not use browser CORS.
-
-## Tests
-
-```powershell
+Для защищённых запросов клиенты должны передавать заголовок Authorization: Bearer <access_token>. В CORS_ORIGINS указываются точные адреса веб-фронтенда. Для нативного Flutter ограничение CORS браузера обычно не применяется.
+Тестирование
 python -m pytest -q
 python -m alembic current
-```
+Последний подтверждённый локальный результат: 8 тестов прошли, 1 предупреждение об устаревшем API зависимости. Успешные тесты не заменяют проверки конкурентных операций в PostgreSQL, нагрузки и безопасности.
+Подготовка к развёртыванию на сервере
+Планируемая схема: Frontend / Flutter → HTTPS / Nginx → FastAPI → PostgreSQL.
 
-Latest local test result reported: **8 passed, 1 deprecation warning**. Passing tests do not replace PostgreSQL concurrency, load, and security testing.
+Перед публичным запуском необходимо:
+1. Хранить .env и пароли вне Git; использовать уникальный SECRET_KEY и надёжный пароль базы данных.
+2. Использовать PostgreSQL для реальной многопользовательской работы; SQLite оставить для локальной разработки.
+3. Применить миграции через python -m alembic upgrade head либо через проверенный механизм контейнера.
+4. Запустить Uvicorn за Nginx; при использовании systemd привязать Uvicorn к 127.0.0.1:8000.
+5. В правилах AWS EC2 разрешить только необходимое: SSH (с ограничением по IP), HTTP для настройки сертификата/перенаправления и HTTPS.
+6. Настроить TLS-сертификат, резервное копирование, журналирование, CORS и контроль административного доступа.
+Доступность страницы /docs ещё не означает, что сервер полностью готов к продакшену.
 
-## Deployment notes
-
-The intended public architecture is **client → HTTPS/Nginx → FastAPI → PostgreSQL**. Before going live:
-
-1. Keep `.env` and credentials outside Git; generate a unique `SECRET_KEY` and database password.
-2. Use PostgreSQL for real multi-user deployment; SQLite is for local development.
-3. Apply migrations with `python -m alembic upgrade head` (or through a vetted container entrypoint).
-4. Run Uvicorn behind Nginx, bound to `127.0.0.1:8000` when using a systemd service.
-5. Expose only SSH (restricted source), HTTP (for HTTPS redirection/certificate setup), and HTTPS from the EC2 Security Group.
-6. Configure TLS, backups, logging, CORS, and administrative access before public release.
-
-Do not treat a reachable `/docs` page as evidence that the service is production ready.
-
-## Project layout
-
-```text
+Структура проекта
 app/
-  api/               # auth, restaurant, menu, reservations, orders
-  core/              # settings, JWT/security
-  db/                # session and Base
-  main.py            # FastAPI application
-  models.py          # SQLAlchemy entities
-  schemas.py         # Pydantic models
-migrations/           # Alembic revisions
-scripts/              # demo data seed
-tests/               # Pytest test suite
-API_CONTRACT.md       # REST API contract
+  api/               # авторизация, ресторан, меню, бронирования, заказы
+  core/              # конфигурация, безопасность, JWT
+  db/                # подключение к БД, Base
+  main.py            # приложение FastAPI
+  models.py          # модели SQLAlchemy
+  schemas.py         # схемы Pydantic
+migrations/           # миграции Alembic
+scripts/              # заполнение демонстрационными данными
+tests/               # тесты Pytest
+API_CONTRACT.md       # контракт REST API
 requirements.txt
 .env.example
-```
-
-## Team workflow
-
-Development happens in separate Git branches. The `Daniel` branch is used for the owner's work; changes should be reviewed and integrated into the team branch intentionally. Do not force-push shared branches or commit `.env`, database files, access tokens, or customer data.
-
----
-
-**MAISON Restaurant — Backend MVP**
+Работа в команде
+Разработка ведётся в отдельных Git-ветках. Ветка Daniel используется для изменений разработчика; объединение в общую ветку команды выполняется после проверки. Не используйте push --force в общих ветках и не добавляйте в коммиты .env, файлы базы данных, токены или пользовательские данные.
+MAISON Restaurant — Backend MVP
